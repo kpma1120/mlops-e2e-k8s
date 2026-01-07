@@ -7,31 +7,22 @@ form.addEventListener("submit", async (event) => {
 
   // Collect form data and convert to JSON
   const formData = new FormData(form);
-  const jsonData = {};
-  formData.forEach((value, key) => {
-    jsonData[key] = value;
-  });
+  const payload = Object.fromEntries(formData.entries());
 
   try {
     // Call FastAPI's /predict endpoint
-    // IMPORTANT: Use full URL because Flask and FastAPI run on different ports
-    const response = await fetch("http://localhost:8000/predict", {
+    const response = await fetch("/predict", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(jsonData)
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(payload)
     });
 
     const data = await response.json();
-
-    if (response.ok) {
+    resultText.textContent = response.ok
       // Display prediction result
-      resultText.textContent = "The prediction is: " + data.prediction;
-    } else {
+      ? `The prediction is: ${data.prediction}`
       // Display error message if API returns error
-      resultText.textContent = "Error: " + (data.error || "Unknown error");
-    }
+      : `Error: ${data.error || "Unknown error"}`;
   } catch (err) {
     // Handle network or request failure
     resultText.textContent = "Request failed: " + err.message;

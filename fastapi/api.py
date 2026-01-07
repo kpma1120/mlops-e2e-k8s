@@ -136,14 +136,14 @@ async def metrics() -> PlainTextResponse:
 
 
 @app.get("/health")
-async def health_check() -> dict:
+async def health_check() -> JSONResponse:
     """
     Health check endpoint.
 
     Returns:
         Response: Dict response with status ok.
     """
-    return {"status": "ok"}
+    return JSONResponse(content={"status": "ok"}, status_code=200)
 
 
 @app.get("/")

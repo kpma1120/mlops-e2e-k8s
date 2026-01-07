@@ -132,6 +132,14 @@ spec:
 
 ---
 # ---------------- Flask ----------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flask-config
+data:
+  FASTAPI_URL: "http://fastapi-service:8000"
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -149,6 +157,12 @@ spec:
       containers:
       - name: flask
         image: us-east1-docker.pkg.dev/mlops-repo1/my-repo/flask:latest
+        env:
+        - name: FASTAPI_URL
+          valueFrom:
+            configMapKeyRef:
+              name: flask-config
+              key: FASTAPI_URL
         imagePullPolicy: Always
         ports:
         - containerPort: 5000
