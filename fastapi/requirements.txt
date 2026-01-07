@@ -1,0 +1,9 @@
+dotenv
+pandas
+pandera
+redis
+scikit-learn
+fastapi
+uvicorn
+alibi-detect
+prometheus_client

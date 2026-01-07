@@ -1,0 +1,6 @@
+.dockerignore
+invalid
+raw
+split
+data_validation_report.json
+*.dvc

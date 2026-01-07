@@ -1,0 +1,97 @@
+/* 全局設定 */
+body {
+  font-family: "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: #0f172a; /* 深藍灰背景，科技感 */
+  color: #e2e8f0; /* 淺灰文字 */
+  margin: 0;
+  padding: 0;
+}
+
+/* 容器 */
+.container {
+  max-width: 800px;
+  margin: 50px auto;
+  padding: 30px;
+  background: #1e293b; /* 深灰藍卡片背景 */
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+}
+
+/* 標題 */
+h1 {
+  text-align: center;
+  color: #38bdf8; /* 藍色強調 */
+  margin-bottom: 30px;
+  font-size: 2.2rem;
+  letter-spacing: 1px;
+}
+
+/* 表單 */
+.prediction-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #94a3b8; /* 淺灰藍 */
+}
+
+input, select {
+  padding: 10px;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 1rem;
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: #38bdf8;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.6);
+}
+
+/* 按鈕 */
+.btn {
+  padding: 12px;
+  background: linear-gradient(90deg, #38bdf8, #0ea5e9);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(56, 189, 248, 0.4);
+}
+
+/* 結果區塊 */
+.prediction-result {
+  margin-top: 30px;
+  padding: 20px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+}
+
+.prediction-result h3 {
+  margin-bottom: 10px;
+  color: #38bdf8;
+}
+
+.prediction-result p {
+  font-size: 1.1rem;
+  color: #f8fafc;
+}
