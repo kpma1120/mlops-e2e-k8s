@@ -20,14 +20,9 @@ from src.utils import load_data, load_object
 
 logger = get_logger(__name__)
 
+
 # API app initialization
 app = FastAPI(title="Titanic Survival API")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5000"],  # Flask UI domain name
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # Model inference initialization
 preprocessor: Preprocessor = load_object(PREPROCESSOR_PATH)

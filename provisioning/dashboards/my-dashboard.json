@@ -15,10 +15,10 @@
       }
     ]
   },
-  "editable": false,
+  "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 0,
+  "id": 1,
   "links": [],
   "panels": [
     {
@@ -113,7 +113,7 @@
           "refId": "A"
         }
       ],
-      "title": "Requests / min",
+      "title": "Requests / time",
       "type": "timeseries"
     },
     {
@@ -212,7 +212,7 @@
           "refId": "A"
         }
       ],
-      "title": "Drift Events / min",
+      "title": "Drift Events / time",
       "type": "timeseries"
     },
     {
@@ -279,7 +279,7 @@
         {
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(increase(prediction_latency_seconds_bucket{le!=\"+Inf\"}[24h])) by (le)",
+          "expr": "sum(increase(prediction_latency_seconds_bucket{le!=\"+Inf\"}[360d])) by (le)",
           "instant": false,
           "interval": "",
           "legendFormat": "__auto",
@@ -349,7 +349,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(increase(prediction_error_total[24h]))",
+          "expr": "sum(increase(prediction_error_total[365d]))",
           "legendFormat": "Error",
           "range": true,
           "refId": "A"
@@ -360,7 +360,7 @@
             "uid": "df988fxbot4hsf"
           },
           "editorMode": "code",
-          "expr": "sum(increase(prediction_total[24h])) - sum(increase(prediction_error_total[24h]))",
+          "expr": "sum(increase(prediction_total[365d])) - sum(increase(prediction_error_total[365d]))",
           "hide": false,
           "instant": false,
           "interval": "",
@@ -380,12 +380,12 @@
     "list": []
   },
   "time": {
-    "from": "now-24h",
+    "from": "now-30d",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "MLOps Model Monitoring Dashboard (Titanic Example)",
   "uid": "ad4qm7g",
-  "version": 11
+  "version": 2
 }

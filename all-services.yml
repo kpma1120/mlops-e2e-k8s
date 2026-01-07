@@ -253,14 +253,19 @@ spec:
           initialDelaySeconds: 20
           periodSeconds: 10
         volumeMounts:
-        - name: grafana-provisioning
-          mountPath: /etc/grafana/provisioning
+        - name: grafana-provisioning-dashboards
+          mountPath: /etc/grafana/provisioning/dashboards
+        - name: grafana-provisioning-datasources
+          mountPath: /etc/grafana/provisioning/datasources
         - name: grafana-data
           mountPath: /var/lib/grafana
       volumes:
-      - name: grafana-provisioning
+      - name: grafana-provisioning-dashboards
         configMap:
-          name: grafana-provisioning
+          name: grafana-provisioning-dashboards
+      - name: grafana-provisioning-datasources
+        configMap:
+          name: grafana-provisioning-datasources
       - name: grafana-data
         persistentVolumeClaim:
           claimName: grafana-pvc

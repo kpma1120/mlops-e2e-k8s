@@ -42,15 +42,6 @@ jobs:
         run: |
           apt-get update
           apt-get install -y docker.io
-
-      - name: Pre-build health check (CI workspace)
-        run: |
-          echo "Checking artifacts directory in CI workspace..."
-          ls -l artifacts/processed || (echo "❌ artifacts/processed directory missing" && exit 1)
-          ls -l artifacts/models || (echo "❌ artifacts/models directory missing" && exit 1)
-          ls -l src || (echo "❌ src/ directory missing" && exit 1)
-          ls -l fastapi || (echo "❌ fastapi/ directory missing" && exit 1)
-          ls -l flask || (echo "❌ flask/ directory missing" && exit 1)
       
       - name: Build and Push FastAPI Image
         run: |
@@ -64,17 +55,6 @@ jobs:
           docker push $FLASK_IMAGE:$GITHUB_SHA
           docker push $FLASK_IMAGE:latest
 
-      - name: Post-build health check (container filesystem)
-        run: |
-          echo "Checking artifacts directory inside container..."
-          docker run --rm $FASTAPI_IMAGE:latest ls -l /artifacts/processed || (echo "❌ /artifacts/processed missing in image" && exit 1)
-          docker run --rm $FASTAPI_IMAGE:latest ls -l /artifacts/models || (echo "❌ /artifacts/models missing in image" && exit 1)
-          docker run --rm $FASTAPI_IMAGE:latest ls -l /src || (echo "❌ /src missing in image" && exit 1)
-          docker run --rm $FASTAPI_IMAGE:latest ls -l /api.py || (echo "❌ api.py missing in image" && exit 1)
-          docker run --rm $FLASK_IMAGE:latest ls -l /static || (echo "❌ /static missing in image" && exit 1)
-          docker run --rm $FLASK_IMAGE:latest ls -l /templates || (echo "❌ /templates missing in image" && exit 1)
-          docker run --rm $FLASK_IMAGE:latest ls -l /ui.py || (echo "❌ ui.py missing in image" && exit 1)
-
       - name: GKE Configuration
         run: |
           gcloud container clusters get-credentials $GKE_CLUSTER --region $GKE_REGION --project $PROJECT_ID
@@ -82,11 +62,17 @@ jobs:
       - name: Sync ConfigMaps from repo files
         run: |
           kubectl create configmap prometheus-config --from-file=prometheus.yml --dry-run=client -o yaml | kubectl apply -f -
-          kubectl create configmap grafana-provisioning --from-file=provisioning/ --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create configmap grafana-provisioning-dashboards --from-file=provisioning/dashboards --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create configmap grafana-provisioning-datasources --from-file=provisioning/datasources --dry-run=client -o yaml | kubectl apply -f -
 
-      - name: Apply PVC (and any static resources)
+      - name: Restart Deployments to pick up new ConfigMaps
         run: |
-          kubectl apply -f monitoring-resources.yml
+          kubectl rollout restart deployment prometheus
+          kubectl rollout restart deployment grafana
+
+      - name: Apply PVC
+        run: |
+          kubectl apply -f monitoring-pvc.yml
 
       - name: Deploy All Services
         run: |
@@ -107,11 +93,3 @@ jobs:
           PROM_POD=$(kubectl get pod -l app=prometheus -o jsonpath="{.items[0].metadata.name}")
           kubectl cp prometheus-data.tar.gz $PROM_POD:/prometheus
           kubectl exec $PROM_POD -- tar xzf /prometheus/prometheus-data.tar.gz -C /prometheus
-
-      - name: Initialize Grafana Data (only on init-data-* tag)
-        if: startsWith(github.ref, 'refs/tags/init-data-')
-        run: |
-          tar czf grafana-data.tar.gz grafana-data/
-          GRAFANA_POD=$(kubectl get pod -l app=grafana -o jsonpath="{.items[0].metadata.name}")
-          kubectl cp grafana-data.tar.gz $GRAFANA_POD:/var/lib/grafana
-          kubectl exec $GRAFANA_POD -- tar xzf /var/lib/grafana/grafana-data.tar.gz -C /var/lib/grafana

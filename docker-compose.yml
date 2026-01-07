@@ -1,5 +1,5 @@
 services:
-  prometheus:
+  prometheus-service:
     image: prom/prometheus:latest
     container_name: prometheus
     ports:
@@ -14,7 +14,7 @@ services:
     networks:
       - monitoring
   
-  grafana:
+  grafana-service:
     image: grafana/grafana:latest
     container_name: grafana
     ports:
@@ -29,9 +29,9 @@ services:
     networks:
       - monitoring
     depends_on:
-      - prometheus
+      - prometheus-service
 
-  fastapi:
+  fastapi-service:
     build:
       context: ./
       dockerfile: ./fastapi/Dockerfile
@@ -41,19 +41,19 @@ services:
     networks:
       - monitoring
     depends_on:
-      - prometheus
+      - prometheus-service
 
-  flask:
+  flask-service:
     build: ./flask
     container_name: flask
     ports:
       - "5000:5000"
     environment:
-      - FASTAPI_URL=http://fastapi:8000
+      - FASTAPI_URL=http://fastapi-service:8000
     networks:
       - monitoring
     depends_on:
-      - fastapi
+      - fastapi-service
 
 networks:
   monitoring:
