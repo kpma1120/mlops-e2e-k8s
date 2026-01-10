@@ -100,36 +100,43 @@ jobs:
           kubectl create configmap grafana-provisioning-dashboards --from-file=provisioning/dashboards --dry-run=client -o yaml | kubectl apply -f -
           kubectl create configmap grafana-provisioning-datasources --from-file=provisioning/datasources --dry-run=client -o yaml | kubectl apply -f -
 
-      - name: Reload Prometheus config via API (with fallback)
-        run: |
-          kubectl port-forward svc/prometheus-service 9090:9090 &
-          sleep 5
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://127.0.0.1:9090/-/reload)
-          if [ "$STATUS" -ne 200 ]; then
-            echo "Prometheus reload failed (HTTP $STATUS), fallback to rollout restart"
-            if [[ "${GITHUB_REF}" == refs/tags/init-data-* ]]; then
-              echo "Init-data deploy detected, skip fallback restart (will restart later)"
-            else
-              kubectl rollout restart deployment prometheus
-            fi
-          else
-            echo "Prometheus reload succeeded"
-          fi
-
-      - name: Restart Grafana to pick up new ConfigMaps
-        run: kubectl rollout restart deployment grafana
-
-      - name: Apply PVC
-        run: kubectl apply -f monitoring-pvc.yml
+      - name: Apply PVC (safe)
+        run: kubectl apply -f monitoring-pvc.yml || true
 
       - name: Deploy All Services
         run: kubectl apply -f all-services.yml
 
+      - name: Restart Prometheus to apply config
+        run: |
+          if kubectl get deployment prometheus >/dev/null 2>&1; then
+            kubectl rollout restart deployment prometheus
+          else
+            echo "Prometheus deployment not found, skipping restart"
+          fi
+
+      - name: Restart Grafana to pick up new ConfigMaps
+        run: |
+          if kubectl get deployment grafana >/dev/null 2>&1; then
+            kubectl rollout restart deployment grafana
+          else
+            echo "Grafana deployment not found, skipping restart"
+          fi
+
       - name: Update FastAPI Image
-        run: kubectl set image deployment/fastapi fastapi=$FASTAPI_IMAGE:$GITHUB_SHA
+        run: |
+          if kubectl get deployment fastapi >/dev/null 2>&1; then
+            kubectl set image deployment/fastapi fastapi=$FASTAPI_IMAGE:$GITHUB_SHA
+          else
+            echo "FastAPI deployment not found, skipping image update"
+          fi
 
       - name: Update Flask Image
-        run: kubectl set image deployment/flask flask=$FLASK_IMAGE:$GITHUB_SHA
+        run: |
+          if kubectl get deployment flask >/dev/null 2>&1; then
+            kubectl set image deployment/flask flask=$FLASK_IMAGE:$GITHUB_SHA
+          else
+            echo "Flask deployment not found, skipping image update"
+          fi
 
       - name: Initialize Prometheus Data (only on init-data-* tag)
         if: startsWith(github.ref, 'refs/tags/init-data-')
@@ -155,4 +162,3 @@ jobs:
           kubectl rollout restart deployment prometheus
 
           echo "Prometheus snapshot restore step completed. Verify Grafana dashboards for data."
-
