@@ -1,22 +1,35 @@
-import os
 from datetime import datetime
 
 import pandas as pd
 import sqlalchemy
-
 from airflow import DAG
 from airflow.hooks.base import BaseHook
 from airflow.operators.python import PythonOperator
 from airflow.providers.google.cloud.operators.gcs import GCSListObjectsOperator
-from airflow.providers.google.cloud.transfers.gcs_to_local import GCSToLocalFilesystemOperator
+from airflow.providers.google.cloud.transfers.gcs_to_local import (
+    GCSToLocalFilesystemOperator,
+)
 
 
 #### TRANSFORM STEP....
-def load_to_sql(file_path):
+def load_to_sql(file_path) -> None:
+    """Load a CSV file into a PostgreSQL table using Airflow connection.
+
+    This function reads a CSV file into a pandas DataFrame and writes it
+    to a PostgreSQL database table named "titanic". The database connection
+    is retrieved from Airflow's `postgres_default` connection.
+
+    Args:
+        file_path (str): Path to the CSV file to be loaded.
+
+    Returns:
+        None: The function performs the database insertion and does not return a value.
+    """
     conn = BaseHook.get_connection('postgres_default')
     db_name = conn.schema or "postgres"
     engine = sqlalchemy.create_engine(
-        f"postgresql+psycopg2://{conn.login}:{conn.password}@{conn.host}:{conn.port}/{db_name}"
+        f"postgresql+psycopg2://{conn.login}:{conn.password}"
+        f"@{conn.host}:{conn.port}/{db_name}"
     )
     df = pd.read_csv(file_path)
     df.to_sql(name="titanic", con=engine, if_exists="replace", index=False)

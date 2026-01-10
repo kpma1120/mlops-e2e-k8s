@@ -1,12 +1,10 @@
-import numpy as np
-import pandas as pd
 from pathlib import Path
 from time import time
-from typing import List
 
+import numpy as np
+import pandas as pd
 from alibi_detect.cd import KSDrift
 from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 from prometheus_client import Counter, Histogram, generate_latest
 from sklearn.ensemble import RandomForestClassifier
@@ -14,7 +12,7 @@ from sklearn.preprocessing import StandardScaler
 
 from src.components.preprocessor import Preprocessor
 from src.components.schema import inference_schema
-from src.config import PROCESSED_DATA_PATH, PREPROCESSOR_PATH, MODEL_PATH
+from src.config import MODEL_PATH, PREPROCESSOR_PATH, PROCESSED_DATA_PATH
 from src.logger import get_logger
 from src.utils import load_data, load_object
 
@@ -35,7 +33,7 @@ scaler = StandardScaler()
 def fit_scaler_on_ref_data(
     ref_data_path: Path | str,
     scaler: StandardScaler,
-    drop_columns: List[str]
+    drop_columns: list[str]
 ) -> np.ndarray:
     """
     Fit a scaler on reference data.
@@ -60,18 +58,24 @@ def fit_scaler_on_ref_data(
     return scaler.transform(df_ref)
 
 
-historical_data = fit_scaler_on_ref_data(PROCESSED_DATA_PATH, scaler, drop_columns=["PassengerId", "Survived"])
+historical_data = fit_scaler_on_ref_data(
+    PROCESSED_DATA_PATH, scaler, drop_columns=["PassengerId", "Survived"]
+)
 ksd = KSDrift(x_ref=historical_data, p_val=0.05)
 
 # Prometheus initialization
-prediction_request_total = Counter("prediction_request_total", "Total number of prediction requests")
+prediction_request_total = Counter(
+    "prediction_request_total", "Total number of prediction requests"
+)
 drift_total = Counter("drift_total", "Total number of times data drift is detected")
 prediction_latency_seconds = Histogram(
     "prediction_latency_seconds",
     "Model prediction latency",
     buckets=[0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.16]
 )
-prediction_error_total = Counter("prediction_error_total", "Total number of failed predictions")
+prediction_error_total = Counter(
+    "prediction_error_total", "Total number of failed predictions"
+)
 
 
 @app.post("/predict")
@@ -116,7 +120,8 @@ async def predict(request: Request) -> JSONResponse:
     except Exception as e:
         logger.error(f"Error during prediction: {e}")
         prediction_error_total.inc()
-        return JSONResponse(content={"error": str(e)}, status_code=422)  # valid request, unprocessable content
+        # 422: valid request, unprocessable content
+        return JSONResponse(content={"error": str(e)}, status_code=422)
 
 
 @app.get("/metrics")

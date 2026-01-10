@@ -1,0 +1,20 @@
+# Core testing tools
+pytest
+pytest-cov
+ruff
+
+# FastAPI API dependencies
+fastapi
+pandas
+pandera
+scikit-learn
+alibi-detect
+prometheus_client
+
+# Flask UI dependencies
+flask
+requests
+
+# Airflow DAG dependencies
+apache-airflow-providers-google
+sqlalchemy

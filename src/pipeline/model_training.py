@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Tuple, cast
+from typing import cast
 
 import comet_ml
 import pandas as pd
@@ -7,35 +7,54 @@ from sklearn.base import BaseEstimator
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (
     accuracy_score,
+    confusion_matrix,
+    f1_score,
     precision_score,
     recall_score,
-    f1_score,
     roc_auc_score,
-    confusion_matrix
 )
-from sklearn.model_selection import train_test_split, RandomizedSearchCV
+from sklearn.model_selection import RandomizedSearchCV, train_test_split
 
 from src.components.feature_store import RedisFeatureStore
 from src.config import (
-    PROCESSED_DATA_PATH, TRAIN_DATA_PATH, TEST_DATA_PATH, MODEL_PATH, COMETML_API_KEY
+    COMETML_API_KEY,
+    MODEL_PATH,
+    PROCESSED_DATA_PATH,
+    TEST_DATA_PATH,
+    TRAIN_DATA_PATH,
 )
 from src.exception import CustomException
 from src.logger import get_logger
-from src.utils import save_data, save_object, hash_dataframe
+from src.utils import hash_dataframe, save_data, save_object
 
 logger = get_logger(__name__)
 
 
 class ModelTraining:
+    """Class for training and evaluating a Random Forest model.
 
+    This class handles data preparation, hyperparameter tuning, model training,
+    evaluation, and logging of metrics and artifacts to Comet-ML. It integrates
+    with a Redis feature store and supports saving datasets and models locally.
+    """
     def __init__(self, 
             processed_data_path: Path | str, 
             train_data_path: Path | str, 
             test_data_path: Path | str, 
             model_path: Path | str, 
             target_name: str, 
-            labels: List[str]
+            labels: list[str]
         ) -> None:
+        """Initialize ModelTraining with paths, target, and labels.
+
+        Args:
+            processed_data_path (Path | str): Path to the processed dataset.
+            train_data_path (Path | str): Path to save the training dataset.
+            test_data_path (Path | str): Path to save the test dataset.
+            model_path (Path | str): Path to save the trained model.
+            target_name (str): Column name of the target variable.
+            labels (list[str]): List of class labels for evaluation.
+        """
         self.processed_data_path = processed_data_path
         self.train_data_path = train_data_path
         self.test_data_path = test_data_path
@@ -55,21 +74,44 @@ class ModelTraining:
 
         logger.info("Model Training & Comet-ML initialized...")
         
-    def prepare_data(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
+    def prepare_data(self) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
+        """Prepare training and test datasets from the feature store.
+
+        This method retrieves entity IDs, splits them into train and test sets,
+        constructs DataFrames, separates features and target, saves datasets locally,
+        and logs dataset information to Comet-ML.
+
+        Returns:
+            tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]: 
+                X_train, X_test, y_train, y_test datasets.
+
+        Raises:
+            CustomException: If data preparation fails.
+        """
         try:
             # get all entity_ids
             entity_ids = self.feature_store.get_all_entity_ids()
 
             # train/test split
-            train_ids, test_ids = train_test_split(entity_ids, test_size=0.2, random_state=42)
+            train_ids, test_ids = train_test_split(
+                entity_ids, test_size=0.2, random_state=42
+            )
 
             # get batch features → DataFrame
-            train_df = pd.DataFrame.from_dict(self.feature_store.get_batch_features(train_ids), orient="index")
-            test_df  = pd.DataFrame.from_dict(self.feature_store.get_batch_features(test_ids), orient="index")
+            train_df = pd.DataFrame.from_dict(
+                self.feature_store.get_batch_features(train_ids), orient="index"
+            )
+            test_df = pd.DataFrame.from_dict(
+                self.feature_store.get_batch_features(test_ids), orient="index"
+            )
 
             # split into X / y
-            X_train, y_train = train_df.drop(columns=[self.target_name]), train_df[self.target_name]
-            X_test,  y_test  = test_df.drop(columns=[self.target_name]),  test_df[self.target_name]
+            X_train, y_train = train_df.drop(
+                columns=[self.target_name]
+            ), train_df[self.target_name]
+            X_test,  y_test  = test_df.drop(
+                columns=[self.target_name]
+            ),  test_df[self.target_name]
 
             # save train/test data locally
             save_data(self.train_data_path, train_df)
@@ -91,7 +133,9 @@ class ModelTraining:
                 dataframe_format="csv"
             )
             self.experiment.log_parameter("train_size", len(train_df))
-            self.experiment.log_parameter("train_dataset_hash", hash_dataframe(train_df))
+            self.experiment.log_parameter(
+                "train_dataset_hash", hash_dataframe(train_df)
+            )
 
             # log dataFrame profile and metadata for test dataset
             self.experiment.log_dataframe_profile(
@@ -112,9 +156,25 @@ class ModelTraining:
         
         except Exception as e:
             logger.error(f"Error during Data Preparation {e}")
-            raise CustomException(e)
+            raise CustomException(e) from e
     
-    def hyperparamter_tuning(self, X_train: pd.DataFrame, y_train: pd.Series) -> BaseEstimator:
+    def hyperparamter_tuning(
+            self, 
+            X_train: pd.DataFrame, 
+            y_train: pd.Series
+        ) -> BaseEstimator:
+        """Perform hyperparameter tuning for Random Forest using RandomizedSearchCV.
+
+        Args:
+            X_train (pd.DataFrame): Training feature set.
+            y_train (pd.Series): Training target values.
+
+        Returns:
+            BaseEstimator: Best estimator found during hyperparameter search.
+
+        Raises:
+            CustomException: If hyperparameter tuning fails.
+        """
         try:
             param_distributions = {
                     'n_estimators': [100, 200, 300],
@@ -124,7 +184,9 @@ class ModelTraining:
                 }
             
             rf = RandomForestClassifier(random_state=42)
-            random_search = RandomizedSearchCV(rf, param_distributions, n_iter=10, cv=3, scoring='f1', random_state=42)
+            random_search = RandomizedSearchCV(
+                rf, param_distributions, n_iter=10, cv=3, scoring='f1', random_state=42
+            )
             random_search.fit(X_train, y_train)
 
             logger.info(f"Best paramters : {random_search.best_params_}")
@@ -132,11 +194,35 @@ class ModelTraining:
         
         except Exception as e:
             logger.error(f"Error during Hyperparamter Tuning {e}")
-            raise CustomException(e)
+            raise CustomException(e) from e
         
-    def train_and_evaluate(self , X_train: pd.DataFrame, y_train: pd.Series, X_test: pd.DataFrame, y_test: pd.Series) -> None:
+    def train_and_evaluate(
+            self , 
+            X_train: pd.DataFrame, 
+            y_train: pd.Series, 
+            X_test: pd.DataFrame, 
+            y_test: pd.Series
+        ) -> None:
+        """Train and evaluate the Random Forest model.
+
+        This method tunes hyperparameters, trains the model, evaluates predictions,
+        logs metrics and confusion matrix to Comet-ML, saves the model locally,
+        and logs the model artifact.
+
+        Args:
+            X_train (pd.DataFrame): Training feature set.
+            y_train (pd.Series): Training target values.
+            X_test (pd.DataFrame): Test feature set.
+            y_test (pd.Series): Test target values.
+
+        Raises:
+            CustomException: If training or evaluation fails.
+        """
         try:
-            best_rf: RandomForestClassifier = cast(RandomForestClassifier, self.hyperparamter_tuning(X_train, y_train))
+            best_rf: RandomForestClassifier = cast(
+                RandomForestClassifier, 
+                self.hyperparamter_tuning(X_train, y_train)
+            )
             
             # log hyperparameters
             self.experiment.log_parameters(best_rf.get_params())
@@ -174,14 +260,22 @@ class ModelTraining:
             logger.info("Saving Random Forest Model...")
             save_object(self.model_path, best_rf)
 
-            # log model artifact to Comet-ML
-            self.experiment.log_model("random_forest", str(self.model_path))  # Comet-ML accepts string only path
+            # log model artifact to Comet-ML (Comet-ML accepts string only path)
+            self.experiment.log_model("random_forest", str(self.model_path))  
 
         except Exception as e:
             logger.error(f"Error during Model Training & Evaluation {e}")
-            raise CustomException(e)
+            raise CustomException(e) from e
         
     def run(self) -> None:
+        """Run the complete model training pipeline.
+
+        This method prepares data, trains and evaluates the model, logs results,
+        and ends the Comet-ML experiment.
+
+        Raises:
+            CustomException: If the training job fails.
+        """
         try:
             logger.info("Starting Model Training Job....")
             X_train , X_test , y_train, y_test = self.prepare_data()
@@ -192,10 +286,15 @@ class ModelTraining:
             logger.info("End of Model Training Job")
         except Exception as e:
             logger.error(f"Error during Model Training Job {e}")
-            raise CustomException(e)
+            raise CustomException(e) from e
 
 
 if __name__ == "__main__":
+    """Main entry point for executing the model training job.
+
+    Initializes a ModelTraining instance with configured paths and parameters,
+    then runs the training and evaluation pipeline.
+    """
     model_trainer = ModelTraining(
         PROCESSED_DATA_PATH, TRAIN_DATA_PATH, TEST_DATA_PATH, MODEL_PATH, 
         target_name="Survived", labels=["Not Survived", "Survived"]

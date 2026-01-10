@@ -36,7 +36,7 @@ services:
   fastapi-service:
     build:
       context: ./
-      dockerfile: ./fastapi/Dockerfile
+      dockerfile: ./fastapi_api/Dockerfile
     container_name: fastapi
     ports:
       - "8000:8000"
@@ -46,7 +46,7 @@ services:
       - prometheus-service
 
   flask-service:
-    build: ./flask
+    build: ./flask_ui
     container_name: flask
     ports:
       - "5000:5000"

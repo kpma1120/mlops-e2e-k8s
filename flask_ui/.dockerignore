@@ -1,5 +1,4 @@
 Dockerfile
 .dockerignore
 __pycache__/
-logs
-
+__init__.py

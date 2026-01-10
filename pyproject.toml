@@ -1,0 +1,55 @@
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E203"]
+exclude = [
+    ".venv",
+    "__pycache__",
+    ".git",
+    "*.egg-info",
+    "logs",
+    "grafana-data",
+    "prometheus-data",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "src",
+    "fastapi_api",
+    "flask_ui",
+]
+combine-as-imports = true
+
+[tool.ruff.format]
+
+indent-style = "space"
+skip-magic-trailing-comma = false
+
+[tool.pytest.ini_options]
+addopts = [
+    "-v",
+    "--cov=.",
+    "--cov-config=pyproject.toml",
+    "--cov-report=term-missing",
+    "--junitxml=test-results/junit.xml",
+]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.coverage.run]
+branch = true
+omit = [
+    ".venv/*",
+    "*/__pycache__/*",
+    "*/__init__.py",
+    "setup.py",
+    "tests/*",
+    "migrations/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true

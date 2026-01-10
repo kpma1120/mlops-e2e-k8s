@@ -1,12 +1,12 @@
-import numpy as np
-import pandas as pd
 from typing import Self
 
+import numpy as np
+import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import OneHotEncoder
 from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder
 
 from src.exception import CustomException
 from src.logger import get_logger
@@ -16,6 +16,8 @@ logger = get_logger(__name__)
 
 
 class ColumnSelector(BaseEstimator, TransformerMixin):
+    """Custom transformer to select specific columns from a DataFrame."""
+
     def __init__(self, columns) -> None:
         # ensure columns is always a list
         self.columns = columns if isinstance(columns, list) else [columns]
@@ -24,6 +26,7 @@ class ColumnSelector(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """Select specified columns from the input DataFrame."""
         return X[self.columns].copy()
 
 
@@ -34,6 +37,7 @@ class FamilyFeatures(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """Create family-related features (FamilySize, IsAlone) from SibSp and Parch."""
         Xc = X.copy()
         family_size = Xc['SibSp'] + Xc['Parch'] + 1.0
         out = pd.DataFrame({
@@ -42,6 +46,7 @@ class FamilyFeatures(BaseEstimator, TransformerMixin):
         }, index=Xc.index).astype(np.float64)
         return out
 
+
 class CabinFlag(BaseEstimator, TransformerMixin):
     """Binary flag for whether Cabin is present."""
 
@@ -49,14 +54,16 @@ class CabinFlag(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """Create binary flag indicating presence of Cabin information."""
         Xc = X.copy()
         # mapping：non-missing → 1，missing → NaN
         series = Xc['Cabin'].apply(lambda v: 1.0 if pd.notnull(v) else np.nan)
         out = pd.DataFrame({'HasCabin': series}, index=Xc.index)
         return out
 
+
 class TitleExtractor(BaseEstimator, TransformerMixin):
-    """Extract title from Name and map to ordinal categories."""
+    """Extract title from Name with fallback to Rare title."""
 
     def __init__(self) -> None:
         # Common titles
@@ -68,10 +75,14 @@ class TitleExtractor(BaseEstimator, TransformerMixin):
         return self
     
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """Extract and map titles from passenger Name column."""
         Xc = X.copy()
         titles = Xc['Name'].str.extract(r' ([A-Za-z]+)\.', expand=False)
-        out = titles.map(lambda t: t if t in self.common_titles else self._fallback_value_).to_frame()
+        out = titles.map(
+            lambda t: t if t in self.common_titles else self._fallback_value_
+        ).to_frame()
         return out
+
 
 class CombineAndInteract(BaseEstimator, TransformerMixin):
     """
@@ -84,6 +95,7 @@ class CombineAndInteract(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X: np.ndarray) -> pd.DataFrame:
+        """Combine base features and interaction features (Pclass_Fare, Age_Fare)."""
         # Convert array to dataframe with feature names
         df = pd.DataFrame(data=X, columns=Preprocessor.FEATURE_NAMES[:-2])
 
@@ -110,6 +122,11 @@ class Preprocessor:
     ]
 
     def __init__(self) -> None:
+        """
+        Initialize preprocessing pipelines for numeric, categorical, handcrafted and 
+        interaction features.
+        """
+
         logger.info("Preprocessor initialized")
 
         # Define columns
@@ -147,7 +164,7 @@ class Preprocessor:
             ('onehot', OneHotEncoder(handle_unknown='ignore'))
         ])
 
-        # Combine base features (numeric + categorical + handcrafted + identity)
+        # Combine base features (numeric + categorical + handcrafted)
         self.base_union = ColumnTransformer(
             transformers=[
                 ('num', numeric_pipeline, self.numeric_cols),
@@ -159,10 +176,10 @@ class Preprocessor:
             remainder='drop'
         )
 
-        # Final pipeline: compute base features then interactions
+        # Final pipeline: compute base features then combine with interaction features
         self.pipeline = Pipeline(steps=[
             ('base', self.base_union),
-            # Interaction needs Pclass, Age, Fare in single frame → we implement a wrapper
+            # Interaction needs Pclass, Age, Fare in single frame → implement a wrapper
             ('combine_and_interact', CombineAndInteract())
         ])
 
@@ -182,7 +199,7 @@ class Preprocessor:
             return self
         except Exception as e:
             logger.error(f"Error during preprocessing fit: {e}")
-            raise CustomException(e)
+            raise CustomException(e) from e
 
     def transform(self,
             df: pd.DataFrame,
@@ -191,8 +208,8 @@ class Preprocessor:
         ) -> pd.DataFrame:
         """
         Apply preprocessing transformations to raw Titanic dataframe.
-        Returns a processed dataframe with engineered features, and optional key and target columns.
-        Signature preserved.
+        Returns a processed dataframe with engineered features, 
+        and optional key and target columns. Signature preserved.
         """
         try:
             df = df.copy()
@@ -220,4 +237,4 @@ class Preprocessor:
 
         except Exception as e:
             logger.error(f"Error during preprocessing transform: {e}")
-            raise CustomException(e)
+            raise CustomException(e) from e

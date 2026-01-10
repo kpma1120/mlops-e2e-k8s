@@ -1,15 +1,18 @@
-from numpy import int64, float64
-from pandera.pandas import Column, Check, DataFrameSchema
+from numpy import float64, int64
+from pandera.pandas import Check, Column, DataFrameSchema
 
 
 def allow_dtypes(*allowed):
     return Check(lambda s: str(s.dtype) in allowed)
 
-
+# Schema used for validation of raw data
 raw_schema = DataFrameSchema({
     "PassengerId": Column(
         None, nullable=False,
-        checks=[allow_dtypes("int8","int32","int64"), Check.in_range(min_value=1, max_value=10000)]
+        checks=[
+            allow_dtypes("int8","int32","int64"), 
+            Check.in_range(min_value=1, max_value=10000)
+        ]
     ),
     "Survived": Column(
         None, nullable=False,
@@ -20,23 +23,38 @@ raw_schema = DataFrameSchema({
         checks=[allow_dtypes("int8","int32","int64"), Check.isin([1,2,3])]
     ),
     "Name": Column(None, nullable=False, checks=allow_dtypes("object","string")),
-    "Sex": Column(None, nullable=False, checks=[allow_dtypes("object","string"), Check.isin(["male","female"])]),
+    "Sex": Column(
+        None, nullable=False, 
+        checks=[allow_dtypes("object","string"), Check.isin(["male","female"])]
+    ),
     "Age": Column(
         None, nullable=True,
-        checks=[allow_dtypes("float32","float64"), Check.in_range(min_value=0, max_value=120)]
+        checks=[
+            allow_dtypes("float32","float64"), 
+            Check.in_range(min_value=0, max_value=120)
+        ]
     ),
     "SibSp": Column(
         None, nullable=False,
-        checks=[allow_dtypes("int8","int32","int64"), Check.in_range(min_value=0, max_value=10)]
+        checks=[
+            allow_dtypes("int8","int32","int64"), 
+            Check.in_range(min_value=0, max_value=10)
+        ]
     ),
     "Parch": Column(
         None, nullable=False,
-        checks=[allow_dtypes("int8","int32","int64"), Check.in_range(min_value=0, max_value=10)]
+        checks=[
+            allow_dtypes("int8","int32","int64"), 
+            Check.in_range(min_value=0, max_value=10)
+        ]
     ),
     "Ticket": Column(None, nullable=False, checks=allow_dtypes("object","string")),
     "Fare": Column(
         None, nullable=False,
-        checks=[allow_dtypes("float32","float64"), Check.in_range(min_value=0, max_value=600)]
+        checks=[
+            allow_dtypes("float32","float64"), 
+            Check.in_range(min_value=0, max_value=600)
+        ]
     ),
     "Cabin": Column(None, nullable=True, checks=allow_dtypes("object","string")),
     "Embarked": Column(
@@ -45,7 +63,8 @@ raw_schema = DataFrameSchema({
     ),
 })
 
-
+# Schema used for validation of preprocessed data, processed data, and retrieved data 
+# from Redis feature store
 processed_schema = DataFrameSchema({
     "PassengerId": Column(
         int64, nullable=False,
@@ -105,7 +124,7 @@ processed_schema = DataFrameSchema({
     ),
 })
 
-
+# Schema used for validation of input raw data to the predict API endpoint for inference
 inference_schema = DataFrameSchema({
     "PassengerId": Column(
         int64, nullable=False,

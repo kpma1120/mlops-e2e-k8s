@@ -27,6 +27,7 @@ DATA_VALIDATION_REPORT_PATH: Path = ARTIFACTS_DIR / "data_validation_report.json
 
 # === Database ===
 class DatabaseConfigDict(TypedDict):
+    """Configuration dictionary for connecting to a PostgreSQL database."""
     host: str
     port: int
     username: str

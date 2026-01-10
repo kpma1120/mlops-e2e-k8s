@@ -11,6 +11,7 @@ LOG_STR = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
 
 
 def get_logger(name):
+    """Return a configured logger that writes to file and stdout."""
     logging.basicConfig(
         level=logging.INFO,
         format=LOG_STR,
