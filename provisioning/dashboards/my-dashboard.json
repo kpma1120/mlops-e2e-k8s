@@ -225,7 +225,6 @@
           "color": {
             "mode": "continuous-GrYlRd"
           },
-          "fieldMinMax": false,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -279,15 +278,38 @@
         {
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(increase(prediction_latency_seconds_bucket{le!=\"+Inf\"}[360d])) by (le)",
+          "expr": "sum by(le) (increase(prediction_latency_seconds_bucket{le!=\"+Inf\"}[365d]))",
+          "format": "time_series",
           "instant": false,
           "interval": "",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "df988fxbot4hsf"
+          },
+          "editorMode": "code",
+          "expr": "sum by(le) (increase(prediction_latency_seconds_bucket{le=\"+Inf\"}[365d]))",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "B"
         }
       ],
       "title": "Prediction Latency Seconds",
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "\\+Inf",
+            "renamePattern": ">0.16"
+          }
+        }
+      ],
       "type": "bargauge"
     },
     {
@@ -387,5 +409,5 @@
   "timezone": "browser",
   "title": "MLOps Model Monitoring Dashboard (Titanic Example)",
   "uid": "ad4qm7g",
-  "version": 1
+  "version": 3
 }
