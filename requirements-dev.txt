@@ -1,0 +1,28 @@
+# Airflow DAG dependencies
+apache-airflow-providers-google
+apache-airflow-providers-postgres
+pandas
+sqlalchemy
+
+# Environment & configuration
+dotenv
+
+# Data processing & validation
+pandera
+redis
+
+# ML pipeline, Experiment tracking & Data versioning
+scikit-learn
+comet-ml
+ydata-profiling==4.17.0
+dvc
+dvc-gs
+
+# API & UI frameworks
+flask
+fastapi
+uvicorn
+
+# Monitoring
+alibi-detect
+prometheus_client

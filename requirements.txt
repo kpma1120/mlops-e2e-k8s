@@ -1,17 +1,5 @@
+# Airflow DAG dependencies
 apache-airflow-providers-google
 apache-airflow-providers-postgres
-dotenv
 pandas
 sqlalchemy
-pandera
-redis
-scikit-learn
-comet-ml
-ydata-profiling==4.17.0
-dvc
-dvc-gs
-flask
-fastapi
-uvicorn
-alibi-detect
-prometheus_client

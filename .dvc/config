@@ -1,4 +1,5 @@
 [core]
-    remote = myremote
-['remote "myremote"']
+    remote = origin
+['remote "origin"']
     url = gs://mlops-e2e-serverless-dvc
+    credentialpath = ../include/service-account.json
